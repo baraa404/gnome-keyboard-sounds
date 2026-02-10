@@ -1,195 +1,88 @@
-# 🎹 Keyboard Sounds GNOME Extension
+# Keyboard Sounds - GNOME Extension
 
-A clean, professional GNOME Shell extension that integrates with [Keyboard Sounds](https://github.com/nathan-fiscaletti/keyboardsounds) to add satisfying mechanical keyboard and mouse click sound effects to your desktop.
+GNOME Shell extension that wraps [keyboardsounds](https://github.com/nathan-fiscaletti/keyboardsounds) so you can toggle mechanical keyboard / mouse click sounds from the panel.
 
 ![GNOME 49](https://img.shields.io/badge/GNOME-49-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
+![License](https://img.shields.io/badge/license-GPL--2.0--or--later-blue)
 
-## ✨ Features
+## What it does
 
-- **Keyboard Sounds** - Choose from 15+ mechanical keyboard profiles
-- **Mouse Sounds** - Optional mouse click sounds (g502x-wireless)
-- **Volume Control** - Real-time volume slider with live preview
-- **Smart Profile Switching** - Change profiles instantly without restart
-- **Auto-Start** - Remembers your settings across sessions
-- **Clean UI** - Native GNOME design with intuitive menu
-- **Single Source of Truth** - Extension state always matches the daemon
+Adds a panel indicator that lets you:
 
-## 📋 Requirements
+- Toggle keyboard sounds on/off
+- Toggle mouse click sounds
+- Adjust volume with a slider
+- Pick from all available `kbs` profiles (15+ keyboard profiles, mouse profiles)
+- Remembers your last profile and volume across sessions
 
-- GNOME Shell 49 (or compatible version)
-- [Keyboard Sounds Python package](https://pypi.org/project/keyboardsounds/) ≥ 6.0
+The extension talks to the `kbs` daemon under the hood. It doesn't play sounds itself -- it just controls the daemon.
 
-## 🚀 Installation
+## Requirements
 
-### Step 1: Install Keyboard Sounds
+- GNOME Shell 49
+- [keyboardsounds](https://pypi.org/project/keyboardsounds/) (`pip install keyboardsounds`)
+
+## Install
+
+First, make sure `kbs` works:
 
 ```bash
 pip install keyboardsounds
+kbs list-profiles -t keyboard   # should print available profiles
 ```
 
-### Step 2: Install the Extension
+Then install the extension:
 
 ```bash
-# Clone or download the repository
-git clone https://github.com/yourusername/keyboard-sounds-gnome-extension.git
-
-# Run the install script
-cd keyboard-sounds-gnome-extension
+git clone https://github.com/baraa404/gnome-keyboard-sounds.git
+cd gnome-keyboard-sounds/keyboard-sounds@baraa404.github.io
 ./install.sh
 ```
 
-Or manually:
+Log out and back in (Wayland doesn't support shell restarts), then enable it from the Extensions app.
+
+### Manual install
 
 ```bash
-mkdir -p ~/.local/share/gnome-shell/extensions/
-cp -r keyboard-sounds@extensions ~/.local/share/gnome-shell/extensions/
-cd ~/.local/share/gnome-shell/extensions/keyboard-sounds@extensions/schemas
-glib-compile-schemas .
+EXT_DIR=~/.local/share/gnome-shell/extensions/keyboard-sounds@baraa404.github.io
+mkdir -p "$EXT_DIR/schemas"
+cp metadata.json extension.js stylesheet.css "$EXT_DIR/"
+cp schemas/*.xml "$EXT_DIR/schemas/"
+glib-compile-schemas "$EXT_DIR/schemas"
 ```
 
-### Step 3: Enable the Extension
+## How it works
 
-1. Log out and log back in (to reload GNOME Shell on Wayland)
-2. Open GNOME Extensions or GNOME Tweaks
-3. Enable "Keyboard Sounds"
+The extension spawns `kbs` subprocesses:
 
-## 🎮 Usage
+- `kbs start -p <profile> -v <volume> [-m <mouse_profile>]` to start or reconfigure the daemon
+- `kbs stop` to stop it
+- `kbs status -s` to get daemon state as JSON
 
-Click the keyboard icon in your top panel:
+If the daemon is already running, `kbs start` reconfigures it in place (no restart needed). The extension always queries `kbs status -s` after any action so the UI stays in sync with the actual daemon state.
 
-```
-┌──────────────────────────────────┐
-│ [x] Keyboard Sounds              │
-│ [ ] Mouse Sounds                 │
-├──────────────────────────────────┤
-│ [🔊] ━━━━○━━━━━━━━━━━━━━━━━━━━   │
-├──────────────────────────────────┤
-│ > Keyboard Profile (ios)         │
-│ > Mouse Profile (g502x-wireless) │
-└──────────────────────────────────┘
-```
+## Troubleshooting
 
-### Available Keyboard Profiles
+**Extension doesn't show up** -- Make sure you logged out and back in after installing. Check that the files are in `~/.local/share/gnome-shell/extensions/keyboard-sounds@baraa404.github.io/`.
 
-- **alpaca** - Alpaca Mechanical Keyboard
-- **apex-pro-tkl-v2** - Steelseries Apex Pro
-- **banana-split** - Banana Split switches
-- **gateron-black-ink** - Gateron Black Ink switches
-- **gateron-red-ink** - Gateron Red Ink switches
-- **holy-panda** - Holy Panda switches
-- **ios** - iPhone keyboard sounds
-- **logitech-g915-tkl-brown** - Logitech G915 TKL
-- **mx-black** - Cherry MX Black switches
-- **mx-blue** - Cherry MX Blue switches
-- **mx-brown** - Cherry MX Brown switches
-- **mx-speed-silver** - MX Speed Silver switches
-- **nk-cream** - NovelKeys Cream switches
-- **opera-gx** - OperaGX Web Browser
-- **telios-v2** - Telios V2 linear switches
-- **typewriter** - Antique typewriter
+**"kbs not found"** -- The extension looks for `kbs` in `~/.local/bin/kbs`, `/usr/local/bin/kbs`, and `/usr/bin/kbs`. Run `which kbs` to check where yours is.
 
-### Mouse Profiles
+**Profiles not loading** -- Try `kbs list-profiles -s -t keyboard` manually. If that fails, `kbs` itself has an issue.
 
-- **g502x-wireless** - Logitech G502 X Wireless Mouse
+## Settings
 
-## 🔧 How It Works
-
-The extension uses the `kbs` command-line tool to control the Keyboard Sounds daemon:
-
-- **Toggle ON** → `kbs start -p <profile> -v <volume>`
-- **Toggle OFF** → `kbs stop`
-- **Change Profile** → `kbs start` (reconfigures running daemon)
-- **Change Volume** → `kbs start` (reconfigures with new volume)
-
-The daemon is the single source of truth - the extension queries `kbs status -s` (JSON) after every action to ensure the UI always reflects reality.
-
-## 🐛 Troubleshooting
-
-### Extension doesn't appear after installation
+Stored in GSettings (`org.gnome.shell.extensions.keyboard-sounds`). You can poke at them directly if needed:
 
 ```bash
-# Verify extension is in the correct location
-ls ~/.local/share/gnome-shell/extensions/keyboard-sounds@extensions/
-
-# Restart GNOME Shell
-# On X11: Alt+F2, type 'r', press Enter
-# On Wayland: Log out and log back in
-```
-
-### "kbs command not found"
-
-```bash
-# Verify keyboardsounds is installed
-which kbs
-kbs --version
-
-# If not found, install it:
-pip install --user keyboardsounds
-```
-
-### Multiple daemons running
-
-```bash
-# Stop all instances
-kbs stop
-
-# Check status
-kbs status
-```
-
-### Profiles not loading
-
-```bash
-# Test profile listing manually
-kbs list-profiles -s -t keyboard
-kbs list-profiles -s -t mouse
-```
-
-### Toggle state is wrong
-
-The extension syncs with the daemon on startup. If the state is wrong:
-
-1. Toggle the switch manually
-2. The extension will query the daemon and correct itself
-
-## 📝 Settings
-
-Settings are stored in GSettings at `org.gnome.shell.extensions.keyboard-sounds`:
-
-```bash
-# View settings
 gsettings list-recursively org.gnome.shell.extensions.keyboard-sounds
-
-# Change settings via gsettings
-gsettings set org.gnome.shell.extensions.keyboard-sounds volume 75
 gsettings set org.gnome.shell.extensions.keyboard-sounds current-profile 'mx-blue'
+gsettings set org.gnome.shell.extensions.keyboard-sounds volume 75
 ```
 
-Available settings:
-- `enabled` - Whether keyboard sounds are active
-- `mouse-enabled` - Whether mouse sounds are active
-- `current-profile` - Selected keyboard profile
-- `mouse-profile` - Selected mouse profile
-- `volume` - Volume level (0-100)
+## License
 
-## 🤝 Contributing
+GPL-2.0-or-later. See [LICENSE](LICENSE).
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+## Credits
 
-## 🙏 Credits
-
-- [Keyboard Sounds](https://github.com/nathan-fiscaletti/keyboardsounds) by Nathan Fiscaletti - The fantastic Python package that makes this possible
-- GNOME Shell Extension framework
-
-## 📄 License
-
-MIT License - see LICENSE file for details
-
-## 🎨 Preview
-
-*[Add screenshots here showing the menu and panel icon]*
-
----
-
-**Enjoy the satisfying clickety-clack! ⌨️✨**
+Built on top of [keyboardsounds](https://github.com/nathan-fiscaletti/keyboardsounds) by Nathan Fiscaletti.

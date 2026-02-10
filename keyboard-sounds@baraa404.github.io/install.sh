@@ -4,7 +4,7 @@
 
 set -e
 
-EXTENSION_NAME="keyboard-sounds@extensions"
+EXTENSION_NAME="keyboard-sounds@baraa404.github.io"
 EXTENSION_DIR="$HOME/.local/share/gnome-shell/extensions/$EXTENSION_NAME"
 SCHEMA_DIR="$EXTENSION_DIR/schemas"
 
@@ -49,7 +49,7 @@ echo ""
 echo "Installation complete!"
 echo ""
 echo "Next steps:"
-echo "1. Restart GNOME Shell (Alt+F2, type 'r', press Enter)"
-echo "2. Enable the extension using GNOME Extensions app or Tweaks"
+echo "1. Log out and log back in (required on Wayland)"
+echo "2. Enable the extension using the GNOME Extensions app"
 echo ""
 echo "To uninstall, run: rm -rf $EXTENSION_DIR"

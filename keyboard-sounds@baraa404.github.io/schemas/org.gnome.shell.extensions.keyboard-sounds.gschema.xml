@@ -27,10 +27,5 @@
       <summary>Sound volume</summary>
       <description>Volume level for keyboard and mouse sounds (0-100)</description>
     </key>
-    <key name="auto-start" type="b">
-      <default>true</default>
-      <summary>Auto-start on enable</summary>
-      <description>Automatically start keyboard sounds when the extension is enabled</description>
-    </key>
   </schema>
 </schemalist>
