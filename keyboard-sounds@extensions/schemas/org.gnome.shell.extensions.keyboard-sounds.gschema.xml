@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.keyboard-sounds" path="/org/gnome/shell/extensions/keyboard-sounds/">
+    <key name="enabled" type="b">
+      <default>false</default>
+      <summary>Keyboard sounds enabled</summary>
+      <description>Whether keyboard sounds are currently enabled</description>
+    </key>
+    <key name="mouse-enabled" type="b">
+      <default>false</default>
+      <summary>Mouse sounds enabled</summary>
+      <description>Whether mouse sounds are currently enabled</description>
+    </key>
+    <key name="current-profile" type="s">
+      <default>'ios'</default>
+      <summary>Current keyboard sound profile</summary>
+      <description>The currently selected keyboard sound profile</description>
+    </key>
+    <key name="mouse-profile" type="s">
+      <default>'g502x-wireless'</default>
+      <summary>Current mouse sound profile</summary>
+      <description>The currently selected mouse sound profile</description>
+    </key>
+    <key name="volume" type="i">
+      <default>100</default>
+      <range min="0" max="100"/>
+      <summary>Sound volume</summary>
+      <description>Volume level for keyboard and mouse sounds (0-100)</description>
+    </key>
+    <key name="auto-start" type="b">
+      <default>true</default>
+      <summary>Auto-start on enable</summary>
+      <description>Automatically start keyboard sounds when the extension is enabled</description>
+    </key>
+  </schema>
+</schemalist>
