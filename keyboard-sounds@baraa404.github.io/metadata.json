@@ -4,5 +4,8 @@
     "description": "Adds mechanical keyboard and mouse click sound effects to your desktop.\n\nRequires the keyboardsounds Python package (pip install keyboardsounds).\n\nFeatures:\n* Toggle keyboard and mouse sounds from the panel\n* Choose from 15+ built-in sound profiles\n* Adjustable volume",
     "shell-version": ["49"],
     "url": "https://github.com/baraa404/gnome-keyboard-sounds",
-    "settings-schema": "org.gnome.shell.extensions.keyboard-sounds"
+    "settings-schema": "org.gnome.shell.extensions.keyboard-sounds",
+    "donations": {
+        "paypal": "baraa404"
+    }
 }

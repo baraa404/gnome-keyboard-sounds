@@ -83,6 +83,12 @@ gsettings set org.gnome.shell.extensions.keyboard-sounds volume 75
 
 GPL-2.0-or-later. See [LICENSE](LICENSE).
 
+## Support
+
+If you find this extension useful, consider supporting development:
+
+[![PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?logo=paypal)](https://paypal.me/baraa404)
+
 ## Credits
 
 Built on top of [keyboardsounds](https://github.com/nathan-fiscaletti/keyboardsounds) by Nathan Fiscaletti.

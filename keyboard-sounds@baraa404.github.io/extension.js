@@ -256,7 +256,7 @@ class Indicator extends PanelMenu.Button {
 
 export default class KeyboardSoundsExtension extends Extension {
     enable() {
-        this._settings = this.getSettings('org.gnome.shell.extensions.keyboard-sounds');
+        this._settings = this.getSettings();
         this._indicator = new Indicator(this._settings);
         Main.panel.addToStatusArea(this.uuid, this._indicator);
     }
