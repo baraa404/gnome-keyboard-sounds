@@ -13,7 +13,9 @@ Adds a panel indicator that lets you:
 - Toggle mouse click sounds
 - Adjust volume with a slider
 - Pick from all available `kbs` profiles (15+ keyboard profiles, mouse profiles)
-- Remembers your last profile and volume across sessions
+- Toggle pitch shifting with customizable semitone ranges (e.g. deep thock)
+- Choose pitch shift target: Both, Keyboard Only, or Mouse Only
+- Remembers your last profile, volume, and pitch shift settings across sessions
 
 The extension talks to the `kbs` daemon under the hood. It doesn't play sounds itself -- it just controls the daemon.
 
@@ -55,7 +57,7 @@ glib-compile-schemas "$EXT_DIR/schemas"
 
 The extension spawns `kbs` subprocesses:
 
-- `kbs start -p <profile> -v <volume> [-m <mouse_profile>]` to start or reconfigure the daemon
+- `kbs start -p <profile> -v <volume> [-m <mouse_profile>] [-c '<range>'] [-k <target>]` to start or reconfigure the daemon
 - `kbs stop` to stop it
 - `kbs status -s` to get daemon state as JSON
 
@@ -77,6 +79,9 @@ Stored in GSettings (`org.gnome.shell.extensions.keyboard-sounds`). You can poke
 gsettings list-recursively org.gnome.shell.extensions.keyboard-sounds
 gsettings set org.gnome.shell.extensions.keyboard-sounds current-profile 'mx-blue'
 gsettings set org.gnome.shell.extensions.keyboard-sounds volume 75
+gsettings set org.gnome.shell.extensions.keyboard-sounds pitch-shift-enabled true
+gsettings set org.gnome.shell.extensions.keyboard-sounds pitch-shift-range '-3,-1'
+gsettings set org.gnome.shell.extensions.keyboard-sounds pitch-shift-profile 'both'
 ```
 
 ## License

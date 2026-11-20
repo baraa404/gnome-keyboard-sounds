@@ -27,5 +27,20 @@
       <summary>Sound volume</summary>
       <description>Volume level for keyboard and mouse sounds (0-100)</description>
     </key>
+    <key name="pitch-shift-enabled" type="b">
+      <default>false</default>
+      <summary>Pitch shift enabled</summary>
+      <description>Whether random pitch shift is enabled</description>
+    </key>
+    <key name="pitch-shift-range" type="s">
+      <default>'-3,-1'</default>
+      <summary>Pitch shift semitone range</summary>
+      <description>Random pitch shift semitone range in format &lt;min&gt;,&lt;max&gt;</description>
+    </key>
+    <key name="pitch-shift-profile" type="s">
+      <default>'both'</default>
+      <summary>Pitch shift device target</summary>
+      <description>Target device for pitch shift: 'both', 'keyboard', or 'mouse'</description>
+    </key>
   </schema>
 </schemalist>
