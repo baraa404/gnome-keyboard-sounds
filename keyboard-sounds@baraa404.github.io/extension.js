@@ -46,8 +46,8 @@ class Indicator extends PanelMenu.Button {
         this._loadProfiles();
 
         this._sync(() => {
-            if (this._wantKeyboard && !this._daemonRunning)
-                this._start();
+            if ((this._wantKeyboard || this._wantMouse) && !this._daemonRunning)
+                this._updateDaemonState();
         });
     }
 
@@ -71,7 +71,7 @@ class Indicator extends PanelMenu.Button {
                 return;
             this._wantKeyboard = state;
             this._settings.set_boolean('enabled', state);
-            state ? this._start() : this._stop();
+            this._updateDaemonState();
         });
         this.menu.addMenuItem(this._kbToggle);
 
@@ -81,7 +81,7 @@ class Indicator extends PanelMenu.Button {
                 return;
             this._wantMouse = state;
             this._settings.set_boolean('mouse-enabled', state);
-            this._start();
+            this._updateDaemonState();
         });
         this.menu.addMenuItem(this._mouseToggle);
 
@@ -145,8 +145,8 @@ class Indicator extends PanelMenu.Button {
     _refreshUI() {
         this._updatingUI = true;
 
-        this._kbToggle.setToggleState(this._daemonRunning);
-        this._mouseToggle.setToggleState(this._daemonRunning && this._wantMouse);
+        this._kbToggle.setToggleState(this._wantKeyboard);
+        this._mouseToggle.setToggleState(this._wantMouse);
         this._pitchToggle.setToggleState(this._pitchShiftEnabled);
 
         if (this._daemonRunning)
@@ -262,7 +262,7 @@ class Indicator extends PanelMenu.Button {
         this._wantKeyboard = true;
         this._settings.set_string('current-profile', name);
         this._settings.set_boolean('enabled', true);
-        this._start();
+        this._updateDaemonState();
     }
 
     _pickMouseProfile(name) {
@@ -270,12 +270,22 @@ class Indicator extends PanelMenu.Button {
         this._wantMouse = true;
         this._settings.set_string('mouse-profile', name);
         this._settings.set_boolean('mouse-enabled', true);
-        this._start();
+        this._updateDaemonState();
+    }
+
+    _updateDaemonState() {
+        if (this._wantKeyboard || this._wantMouse) {
+            this._start();
+        } else {
+            this._stop();
+        }
     }
 
     // `kbs start` will start the daemon or reconfigure a running one.
     _start() {
-        const args = ['start', '-v', this._volume.toString(), '-p', this._profile];
+        const args = ['start', '-v', this._volume.toString()];
+        if (this._wantKeyboard)
+            args.push('-p', this._profile);
         if (this._wantMouse)
             args.push('-m', this._mouseProfile);
         if (this._pitchShiftEnabled && this._pitchShiftRange) {
@@ -299,26 +309,32 @@ class Indicator extends PanelMenu.Button {
                 try {
                     const s = JSON.parse(out);
                     this._daemonRunning = s.status === 'running';
-                    this._wantKeyboard = this._daemonRunning;
-                    this._settings.set_boolean('enabled', this._daemonRunning);
-                    this._wantMouse = this._daemonRunning && !!s.mouse_profile;
-                    this._settings.set_boolean('mouse-enabled', this._wantMouse);
                     if (this._daemonRunning) {
+                        this._wantKeyboard = !!s.profile && s.profile !== '';
+                        this._wantMouse = !!s.mouse_profile && s.mouse_profile !== '';
+                        this._settings.set_boolean('enabled', this._wantKeyboard);
+                        this._settings.set_boolean('mouse-enabled', this._wantMouse);
                         this._pitchShiftEnabled = !!s.semitones;
                         if (s.semitones)
                             this._pitchShiftRange = s.semitones;
                         if (s.pitch_shift_profile)
                             this._pitchShiftProfile = s.pitch_shift_profile;
                     } else {
+                        this._wantKeyboard = this._settings.get_boolean('enabled');
+                        this._wantMouse = this._settings.get_boolean('mouse-enabled');
                         this._pitchShiftEnabled = this._settings.get_boolean('pitch-shift-enabled');
                         this._pitchShiftRange = this._settings.get_string('pitch-shift-range') || '-3,-1';
                         this._pitchShiftProfile = this._settings.get_string('pitch-shift-profile') || 'both';
                     }
                 } catch (_) {
                     this._daemonRunning = false;
+                    this._wantKeyboard = this._settings.get_boolean('enabled');
+                    this._wantMouse = this._settings.get_boolean('mouse-enabled');
                 }
             } else {
                 this._daemonRunning = false;
+                this._wantKeyboard = this._settings.get_boolean('enabled');
+                this._wantMouse = this._settings.get_boolean('mouse-enabled');
             }
             this._refreshUI();
             if (cb) cb();
