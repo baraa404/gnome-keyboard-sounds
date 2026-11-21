@@ -26,6 +26,9 @@ class Indicator extends PanelMenu.Button {
 
         this._wantKeyboard = this._settings.get_boolean('enabled');
         this._wantMouse = this._settings.get_boolean('mouse-enabled');
+        this._pitchShiftEnabled = this._settings.get_boolean('pitch-shift-enabled');
+        this._pitchShiftRange = this._settings.get_string('pitch-shift-range') || '-3,-1';
+        this._pitchShiftProfile = this._settings.get_string('pitch-shift-profile') || 'both';
         this._profile = this._settings.get_string('current-profile') || 'ios';
         this._mouseProfile = this._settings.get_string('mouse-profile') || 'g502x-wireless';
         this._volume = this._settings.get_int('volume');
@@ -43,8 +46,8 @@ class Indicator extends PanelMenu.Button {
         this._loadProfiles();
 
         this._sync(() => {
-            if (this._wantKeyboard && !this._daemonRunning)
-                this._start();
+            if ((this._wantKeyboard || this._wantMouse) && !this._daemonRunning)
+                this._updateDaemonState();
         });
     }
 
@@ -68,7 +71,7 @@ class Indicator extends PanelMenu.Button {
                 return;
             this._wantKeyboard = state;
             this._settings.set_boolean('enabled', state);
-            state ? this._start() : this._stop();
+            this._updateDaemonState();
         });
         this.menu.addMenuItem(this._kbToggle);
 
@@ -78,7 +81,7 @@ class Indicator extends PanelMenu.Button {
                 return;
             this._wantMouse = state;
             this._settings.set_boolean('mouse-enabled', state);
-            this._start();
+            this._updateDaemonState();
         });
         this.menu.addMenuItem(this._mouseToggle);
 
@@ -113,6 +116,25 @@ class Indicator extends PanelMenu.Button {
 
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
+        this._pitchToggle = new PopupMenu.PopupSwitchMenuItem('Pitch Shift', false);
+        this._pitchToggle.connect('toggled', (_item, state) => {
+            if (this._updatingUI)
+                return;
+            this._pitchShiftEnabled = state;
+            this._settings.set_boolean('pitch-shift-enabled', state);
+            if (this._daemonRunning)
+                this._start();
+        });
+        this.menu.addMenuItem(this._pitchToggle);
+
+        this._pitchTargetSub = new PopupMenu.PopupSubMenuMenuItem('Pitch Shift Target');
+        this.menu.addMenuItem(this._pitchTargetSub);
+
+        this._pitchRangeSub = new PopupMenu.PopupSubMenuMenuItem('Pitch Range');
+        this.menu.addMenuItem(this._pitchRangeSub);
+
+        this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
         this._kbProfileSub = new PopupMenu.PopupSubMenuMenuItem('Keyboard Profile');
         this.menu.addMenuItem(this._kbProfileSub);
 
@@ -123,8 +145,9 @@ class Indicator extends PanelMenu.Button {
     _refreshUI() {
         this._updatingUI = true;
 
-        this._kbToggle.setToggleState(this._daemonRunning);
-        this._mouseToggle.setToggleState(this._daemonRunning && this._wantMouse);
+        this._kbToggle.setToggleState(this._wantKeyboard);
+        this._mouseToggle.setToggleState(this._wantMouse);
+        this._pitchToggle.setToggleState(this._pitchShiftEnabled);
 
         if (this._daemonRunning)
             this._icon.add_style_class_name('keyboard-sounds-active');
@@ -134,12 +157,72 @@ class Indicator extends PanelMenu.Button {
         this._kbProfileSub.label.text = `Keyboard Profile (${this._profile})`;
         this._mouseProfileSub.label.text = `Mouse Profile (${this._mouseProfile})`;
 
+        const targetLabels = {
+            'both': 'Both',
+            'keyboard': 'Keyboard Only',
+            'mouse': 'Mouse Only',
+        };
+        const currentTarget = targetLabels[this._pitchShiftProfile] || 'Both';
+        this._pitchTargetSub.label.text = `Pitch Shift Target (${currentTarget})`;
+        this._pitchRangeSub.label.text = `Pitch Range (${this._pitchShiftRange})`;
+
         this._fillProfiles(this._kbProfileSub, this._kbProfiles,
             this._profile, n => this._pickKbProfile(n));
         this._fillProfiles(this._mouseProfileSub, this._mouseProfiles,
             this._mouseProfile, n => this._pickMouseProfile(n));
+        this._fillPitchTargets();
+        this._fillPitchRanges();
 
         this._updatingUI = false;
+    }
+
+    _fillPitchTargets() {
+        const targets = [
+            { id: 'both', label: 'Both (Keyboard & Mouse)' },
+            { id: 'keyboard', label: 'Keyboard Only' },
+            { id: 'mouse', label: 'Mouse Only' },
+        ];
+        this._pitchTargetSub.menu.removeAll();
+        for (const t of targets) {
+            const item = new PopupMenu.PopupMenuItem(t.label);
+            item.setOrnament(this._pitchShiftProfile === t.id
+                ? PopupMenu.Ornament.CHECK
+                : PopupMenu.Ornament.NONE);
+            item.connect('activate', () => {
+                this._pitchShiftProfile = t.id;
+                this._settings.set_string('pitch-shift-profile', t.id);
+                if (this._daemonRunning && this._pitchShiftEnabled)
+                    this._start();
+                this._refreshUI();
+            });
+            this._pitchTargetSub.menu.addMenuItem(item);
+        }
+    }
+
+    _fillPitchRanges() {
+        const presets = [
+            { id: '-3,-1', label: 'Deep Thock (-3 to -1 st)' },
+            { id: '-4,-2', label: 'Heavy Thock (-4 to -2 st)' },
+            { id: '-2,2',  label: 'Subtle Variety (-2 to +2 st)' },
+            { id: '1,3',   label: 'High Clack (+1 to +3 st)' },
+        ];
+        this._pitchRangeSub.menu.removeAll();
+        for (const p of presets) {
+            const item = new PopupMenu.PopupMenuItem(p.label);
+            item.setOrnament(this._pitchShiftRange === p.id
+                ? PopupMenu.Ornament.CHECK
+                : PopupMenu.Ornament.NONE);
+            item.connect('activate', () => {
+                this._pitchShiftRange = p.id;
+                this._pitchShiftEnabled = true;
+                this._settings.set_string('pitch-shift-range', p.id);
+                this._settings.set_boolean('pitch-shift-enabled', true);
+                if (this._daemonRunning)
+                    this._start();
+                this._refreshUI();
+            });
+            this._pitchRangeSub.menu.addMenuItem(item);
+        }
     }
 
     _fillProfiles(submenu, list, current, onPick) {
@@ -179,7 +262,7 @@ class Indicator extends PanelMenu.Button {
         this._wantKeyboard = true;
         this._settings.set_string('current-profile', name);
         this._settings.set_boolean('enabled', true);
-        this._start();
+        this._updateDaemonState();
     }
 
     _pickMouseProfile(name) {
@@ -187,14 +270,28 @@ class Indicator extends PanelMenu.Button {
         this._wantMouse = true;
         this._settings.set_string('mouse-profile', name);
         this._settings.set_boolean('mouse-enabled', true);
-        this._start();
+        this._updateDaemonState();
+    }
+
+    _updateDaemonState() {
+        if (this._wantKeyboard || this._wantMouse) {
+            this._start();
+        } else {
+            this._stop();
+        }
     }
 
     // `kbs start` will start the daemon or reconfigure a running one.
     _start() {
-        const args = ['start', '-v', this._volume.toString(), '-p', this._profile];
+        const args = ['start', '-v', this._volume.toString()];
+        if (this._wantKeyboard)
+            args.push('-p', this._profile);
         if (this._wantMouse)
             args.push('-m', this._mouseProfile);
+        if (this._pitchShiftEnabled && this._pitchShiftRange) {
+            args.push(`-c=${this._pitchShiftRange}`);
+            args.push('-k', this._pitchShiftProfile || 'both');
+        }
         this._run(args, (ok, _out, err) => {
             if (!ok)
                 console.error('keyboard-sounds: failed to start kbs:', err);
@@ -212,15 +309,32 @@ class Indicator extends PanelMenu.Button {
                 try {
                     const s = JSON.parse(out);
                     this._daemonRunning = s.status === 'running';
-                    this._wantKeyboard = this._daemonRunning;
-                    this._settings.set_boolean('enabled', this._daemonRunning);
-                    this._wantMouse = this._daemonRunning && !!s.mouse_profile;
-                    this._settings.set_boolean('mouse-enabled', this._wantMouse);
+                    if (this._daemonRunning) {
+                        this._wantKeyboard = !!s.profile && s.profile !== '';
+                        this._wantMouse = !!s.mouse_profile && s.mouse_profile !== '';
+                        this._settings.set_boolean('enabled', this._wantKeyboard);
+                        this._settings.set_boolean('mouse-enabled', this._wantMouse);
+                        this._pitchShiftEnabled = !!s.semitones;
+                        if (s.semitones)
+                            this._pitchShiftRange = s.semitones;
+                        if (s.pitch_shift_profile)
+                            this._pitchShiftProfile = s.pitch_shift_profile;
+                    } else {
+                        this._wantKeyboard = this._settings.get_boolean('enabled');
+                        this._wantMouse = this._settings.get_boolean('mouse-enabled');
+                        this._pitchShiftEnabled = this._settings.get_boolean('pitch-shift-enabled');
+                        this._pitchShiftRange = this._settings.get_string('pitch-shift-range') || '-3,-1';
+                        this._pitchShiftProfile = this._settings.get_string('pitch-shift-profile') || 'both';
+                    }
                 } catch (_) {
                     this._daemonRunning = false;
+                    this._wantKeyboard = this._settings.get_boolean('enabled');
+                    this._wantMouse = this._settings.get_boolean('mouse-enabled');
                 }
             } else {
                 this._daemonRunning = false;
+                this._wantKeyboard = this._settings.get_boolean('enabled');
+                this._wantMouse = this._settings.get_boolean('mouse-enabled');
             }
             this._refreshUI();
             if (cb) cb();
